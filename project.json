@@ -1,0 +1,11 @@
+
+{
+  "name": "cluda-form",
+  "description": "html for to email",
+  "memory": 128,
+  "timeout": 5,
+  "role": "arn:aws:iam::525932482084:role/cluda-form_lambda_function",
+  "environment": {
+    "AWS_REGION": "us-west-2"
+  }
+}
