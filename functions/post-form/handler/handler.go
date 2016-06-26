@@ -56,19 +56,27 @@ func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
 		return "verification email sent", nil
 	} else if *resp.Item["verifyed"].BOOL {
 
+		// add to submission table
+		_, err = cli.Dynamo.PutItem(util.FormSubmissionPut(conf.SubmissionTable, e.Receiver, time.Now().UnixNano(), e.Data))
+		if err != nil {
+			fmt.Println(err.Error())
+			return nil, err
+		}
+		
+		// send submission to asosiated email
+
 		data, err := url.ParseQuery(e.Data)
 		if err != nil {
 			fmt.Println(err.Error())
 			return nil, err
 		}
+		body := util.CreateEmailBody(data)
 
-		// add to submission table
-		_, err = cli.Dynamo.PutItem(util.FormSubmissionPut(conf.SubmissionTable, e.Receiver, time.Now().UnixNano(), data))
+		_, err = cli.Ses.SendEmail(util.SendEmialInput(conf.EmailFromAddres, "sogasg@gmail.com", "New Form Subbmision", body))
 		if err != nil {
 			fmt.Println(err.Error())
 			return nil, err
 		}
-		// send submission to asosiated email
 
 		return "submission handled", nil
 	} else {

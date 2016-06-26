@@ -37,16 +37,7 @@ func NewFormDataPut(tableName string, key string, randomSecret string) *dynamodb
 	}
 }
 
-func FormSubmissionPut(tableName string, formId string, timestamp int64, data map[string][]string) *dynamodb.PutItemInput {
-
-	dataMap := make(map[string]*dynamodb.AttributeValue)
-	for key, value := range data {
-		println("key:", key, "value:", value[0])
-		dataMap[key] = &dynamodb.AttributeValue{
-			SS: aws.StringSlice(value),
-		}
-		//dataMap[key].SS = aws.StringSlice(value)
-	}
+func FormSubmissionPut(tableName string, formId string, timestamp int64, data string) *dynamodb.PutItemInput {
 
 	return &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
@@ -57,7 +48,7 @@ func FormSubmissionPut(tableName string, formId string, timestamp int64, data ma
 				N: aws.String(strconv.FormatInt(timestamp, 10)),
 			},
 			"data": {
-				M: dataMap,
+				S: aws.String(data),
 			},
 		},
 		TableName:           aws.String(tableName),
