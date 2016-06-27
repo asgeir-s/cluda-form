@@ -2,7 +2,7 @@ package handler
 
 import (
 	"errors"
-	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -15,21 +15,21 @@ func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
 	resp, err := cli.Dynamo.GetItem(util.FormDataRequest(conf.FormFreeTable, e.Receiver))
 
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 
 	if len(resp.Item) == 0 {
-		fmt.Println("no form found with key:", e.Receiver)
+		log.Println("no form found with key:", e.Receiver)
 		return "", errors.New("no form found")
 	} else if *resp.Item["verifyed"].BOOL {
-		fmt.Println("form with key:", e.Receiver, "already verified")
+		log.Println("form with key:", e.Receiver, "already verified")
 		return "already verified", nil
 	} else if *resp.Item["secret"].S == e.Secret {
 		cli.Dynamo.UpdateItem(verifyFormDynamoIn(conf.FormFreeTable, e.Receiver))
 		return "receiver verifyed", nil
 	}
-	fmt.Println("error or wrong secret for ", e.Receiver ,". Correct secret:", *resp.Item["secret"].S,  ", this secret:", e.Secret)
+	log.Println("error or wrong secret for ", e.Receiver ,". Correct secret:", *resp.Item["secret"].S,  ", this secret:", e.Secret)
 	return "", errors.New("unknown error")
 }
 

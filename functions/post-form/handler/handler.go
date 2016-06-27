@@ -2,7 +2,7 @@ package handler
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"net/url"
 	"time"
 
@@ -15,7 +15,7 @@ func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
 	resp, err := cli.Dynamo.GetItem(util.FormDataRequest(conf.FormFreeTable, e.Receiver))
 
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 
@@ -27,7 +27,7 @@ func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
 		_, err := cli.Dynamo.PutItem(util.NewFormDataPut(conf.FormFreeTable, e.Receiver, secret))
 
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			return nil, err
 		}
 
@@ -41,13 +41,13 @@ func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
 
 		body, err := util.ParseTemplate("../email-templates/action.html", templateData)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			return nil, err
 		}
 
 		resp, err := cli.Ses.SendEmail(util.SendEmialInput(conf.EmailFromAddres, "sogasg@gmail.com", "Test 22", body))
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			return nil, err
 		}
 
@@ -59,28 +59,28 @@ func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
 		// add to submission table
 		_, err = cli.Dynamo.PutItem(util.FormSubmissionPut(conf.SubmissionTable, e.Receiver, time.Now().UnixNano(), e.Data))
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			return nil, err
 		}
-		
+
 		// send submission to asosiated email
 
 		data, err := url.ParseQuery(e.Data)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			return nil, err
 		}
 		body := util.CreateEmailBody(data)
 
 		_, err = cli.Ses.SendEmail(util.SendEmialInput(conf.EmailFromAddres, "sogasg@gmail.com", "New Form Subbmision", body))
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			return nil, err
 		}
 
 		return "submission handled", nil
 	} else {
-		fmt.Println(e.Receiver, " not verifyed")
+		log.Println(e.Receiver, " not verifyed")
 		return "", errors.New("receiver not verifyed")
 	}
 
