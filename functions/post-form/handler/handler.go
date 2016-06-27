@@ -39,7 +39,7 @@ func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
 			Secret: secret,
 		}
 
-		body, err := util.ParseTemplate("../email-templates/action.html", templateData)
+		body, err := util.ParseTemplate("email-templates/action.html", templateData)
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err
