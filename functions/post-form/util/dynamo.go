@@ -8,11 +8,11 @@ import (
 )
 
 // FormDataRequest returns the "get item"-input for dynamo
-func FormDataRequest(tableName string, formID string) *dynamodb.GetItemInput {
+func FormDataRequest(tableName string, userID string) *dynamodb.GetItemInput {
 	return &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": {
-				S: aws.String(formID),
+				S: aws.String(userID),
 			},
 		},
 		TableName: aws.String(tableName),
@@ -37,12 +37,12 @@ func NewFormDataPut(tableName string, key string, randomSecret string) *dynamodb
 	}
 }
 
-func FormSubmissionPut(tableName string, formId string, timestamp int64, data string) *dynamodb.PutItemInput {
+func FormSubmissionPut(tableName string, userID string, timestamp int64, data string) *dynamodb.PutItemInput {
 
 	return &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"formId": {
-				S: aws.String(formId),
+			"userId": {
+				S: aws.String(userID),
 			},
 			"timestamp": {
 				N: aws.String(strconv.FormatInt(timestamp, 10)),

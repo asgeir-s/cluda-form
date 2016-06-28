@@ -7,7 +7,7 @@ import (
 
 // Event is the event message
 type Event struct {
-	Receiver string `json:"receiver"` // email or formId
+	Receiver string `json:"receiver"` // email or userId
 	Data     string `json:"data"`
 }
 
