@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/cluda/cluda-form/functions/post-form/handler"
+	"github.com/cluda/cluda-form/functions/verify-email/handler"
 
 	"github.com/caarlos0/env"
 )

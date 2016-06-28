@@ -9,7 +9,7 @@ type EmailData struct {
 	Text1  string
 	Text2  string
 	Button string
-  Secret string
+  Url string
 }
 
 func ParseTemplate(templateFileName string, emailData EmailData) (string, error) {

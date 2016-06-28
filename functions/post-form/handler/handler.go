@@ -36,7 +36,7 @@ func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
 			Text1:  "",
 			Text2:  "To activate your form, please confirm your email address by clicking the link below.",
 			Button: "Confirm email address",
-			Secret: secret,
+			Url: conf.BaseURL + "/verify?receiver=" + e.Receiver + "&secret=" + secret,
 		}
 
 		body, err := util.ParseTemplate("email-templates/action.html", templateData)
