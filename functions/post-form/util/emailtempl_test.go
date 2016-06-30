@@ -14,7 +14,7 @@ func TestEmailTemplate(t *testing.T) {
 		Text1:  "YoYo",
 		Text2:  "jhdksa",
 		Button: "Trykke?",
-		Secret: "not-super-secret",
+		Url: "test.com",
 	}
 
 	body, err := util.ParseTemplate("email-templates/action.html", templateData)

@@ -6,7 +6,7 @@ import (
 
 // Event is the event message
 type Event struct {
-	Receiver string `json:"receiver"` // email or userId
+	Receiver string `json:"receiver"` // email or formId
 	Secret   string `json:"secret"`
 }
 

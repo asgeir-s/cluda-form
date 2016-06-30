@@ -19,7 +19,7 @@ func TestSendEmail(t *testing.T) {
 		Text1:  "",
 		Text2:  "To activate your form, please confirm your email address by clicking the link below.",
 		Button: "Confirm email address",
-		Secret: secret,
+		Url: "test.com",
 	}
 
 	body, err := util.ParseTemplate("email-templates/action.html", templateData)
