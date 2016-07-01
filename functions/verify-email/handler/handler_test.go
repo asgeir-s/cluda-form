@@ -11,8 +11,8 @@ import (
 )
 
 var config = handler.Config{
-	AwsRegion:     "us-west-2",
-	FormFreeTable: "test-form-table",
+	AwsRegion: "us-west-2",
+	FormTable: "test-form-table",
 }
 
 var clients = handler.Clients{
@@ -22,7 +22,8 @@ var clients = handler.Clients{
 func TestHandler(t *testing.T) {
 	event := handler.Event{
 		Receiver: "sogasg@gmail.com",
-		Secret:   "AfiIhhhiEd",
+		Secret:   "DPnssIYBRXYQ",
+		Origin:   "example.com",
 	}
 
 	res, err := handler.Handle(event, config, clients)

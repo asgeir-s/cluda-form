@@ -2,12 +2,21 @@ package database
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 
 	"github.com/cluda/cluda-form/functions/post-form/types"
 )
+
+// GetForm returns the form corresponding to the origin and key. The key can be formID or email
+func GetForm(dynamo *dynamodb.DynamoDB, tableName, origin, key string) (types.Form, error) {
+	if strings.Contains(key, "@") {
+		return GetFormByOriginEmail(dynamo, tableName, origin, key)
+	}
+	return GetFormByOriginID(dynamo, tableName, origin, key)
+}
 
 // GetFormByOriginID returns a form using the origin/id combination (primary keys) if it exists
 func GetFormByOriginID(dynamo *dynamodb.DynamoDB, tableName, origin, id string) (types.Form, error) {
@@ -29,14 +38,14 @@ func GetFormByOriginID(dynamo *dynamodb.DynamoDB, tableName, origin, id string) 
 	}
 
 	if len(itemRes.Item) == 0 {
-		return types.Form{}, errors.New("no form with this origin/id combination")
+		return types.Form{}, errors.New("[does not exist] no form with this origin/id combination")
 	}
 
 	form := types.Form{
 		ID:          id,                       // sort/range key
 		Email:       *itemRes.Item["email"].S, // secoundary sort/range key
 		Origin:      origin,                   // primary key
-		Verifyed:    *itemRes.Item["verifyed"].BOOL,
+		Verified:    *itemRes.Item["verified"].BOOL,
 		Subscribing: *itemRes.Item["subscription"].BOOL,
 		Secret:      *itemRes.Item["secret"].S,
 	}
@@ -61,14 +70,14 @@ func GetFormByOriginEmail(dynamo *dynamodb.DynamoDB, tableName, origin, email st
 		return types.Form{}, err
 	}
 	if len(itemRes.Items) == 0 {
-		return types.Form{}, errors.New("no form with this origin/email combination")
+		return types.Form{}, errors.New("[does not exist] no form with this origin/email combination")
 	}
 
 	form := types.Form{
 		ID:          *itemRes.Items[0]["id"].S, // sort/range key
 		Email:       email,                     // secoundary sort/range key
 		Origin:      origin,                    // primary key
-		Verifyed:    *itemRes.Items[0]["verifyed"].BOOL,
+		Verified:    *itemRes.Items[0]["verified"].BOOL,
 		Subscribing: *itemRes.Items[0]["subscription"].BOOL,
 		Secret:      *itemRes.Items[0]["secret"].S,
 	}
@@ -91,8 +100,8 @@ func AddNewPayedForm(dynamo *dynamodb.DynamoDB, tableName string, form types.For
 			"secret": {
 				S: aws.String(form.Secret),
 			},
-			"verifyed": {
-				BOOL: aws.Bool(form.Verifyed),
+			"verified": {
+				BOOL: aws.Bool(form.Verified),
 			},
 			"subscription": {
 				BOOL: aws.Bool(form.Subscribing),
@@ -126,8 +135,8 @@ func AddNewFreeForm(dynamo *dynamodb.DynamoDB, tableName string, form types.Form
 			"secret": {
 				S: aws.String(form.Secret),
 			},
-			"verifyed": {
-				BOOL: aws.Bool(form.Verifyed),
+			"verified": {
+				BOOL: aws.Bool(form.Verified),
 			},
 			"subscription": {
 				BOOL: aws.Bool(form.Subscribing),

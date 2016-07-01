@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/apex/go-apex"
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,7 +32,8 @@ func main() {
 
 		res, err := handler.Handle(event, config, clients)
 		if err != nil {
-			return nil, err
+			log.Println(err.Error())
+			return nil, err // TODO: should not return the error.
 		}
 		return res, nil
 	})

@@ -25,11 +25,11 @@ var dynamo = dynamodb.New(session.New(), &aws.Config{Region: aws.String("us-west
 func TestAddNewPayedForm(t *testing.T) {
 
 	form := types.Form{
-		ID:          firstID, // sort/range key
+		ID:          firstID, // range key
 		Email:       email,   // secoundary sort/range key
 		Origin:      origin,  // primary key
 		Secret:      secret,  // the user and I kows this secret
-		Verifyed:    false,
+		Verified:    false,
 		Subscribing: false,
 	}
 
@@ -67,7 +67,7 @@ func TestAddNewFreeForm(t *testing.T) {
 		Email:       email,   // secoundary sort/range key
 		Origin:      origin,  // primary key
 		Secret:      secret,  // the user and I kows this secret
-		Verifyed:    false,
+		Verified:    false,
 		Subscribing: false,
 	}
 

@@ -4,84 +4,93 @@ import (
 	"errors"
 	"log"
 	"net/url"
+	"strings"
 	"time"
 
+	"github.com/cluda/cluda-form/functions/post-form/database"
+	"github.com/cluda/cluda-form/functions/post-form/types"
 	"github.com/cluda/cluda-form/functions/post-form/util"
 )
 
 // Handle will handel a new event
-func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
+func Handle(e types.Event, conf types.Config, cli types.Clients) (interface{}, error) {
+	form, err := database.GetForm(cli.Dynamo, conf.FormTable, e.Origin, e.Receiver)
+	if err != nil {
+		if strings.Contains(err.Error(), "[does not exist]") {
+			// new free form
+			if !strings.Contains(e.Receiver, "@") {
+				return nil, errors.New("encountered a new form that was not using an email as receiver. " +
+					"Forms with ID as receiver should already have be added to the forms table.")
+			}
+			form := types.Form{
+				ID:          util.RandString(12), // range key
+				Email:       e.Receiver,          // secoundary sort/range key
+				Origin:      e.Origin,            // primary key
+				Secret:      util.RandString(12), // the user and I kows this secret
+				Verified:    false,
+				Subscribing: false,
+			}
 
-	resp, err := cli.Dynamo.GetItem(util.FormDataRequest(conf.FormFreeTable, e.Receiver))
+			// add form
+			err := database.AddNewFreeForm(cli.Dynamo, conf.FormTable, form)
+			if err != nil {
+				return nil, err
+			}
 
+			// send verification email
+			templateData := util.EmailData{
+				Text1:  "New form for " + form.Origin + ".",
+				Text2:  "To activate your form, please confirm your email address by clicking the link below.",
+				Button: "Confirm email address",
+				Url:    conf.BaseURL + "/verify?receiver=" + form.Email + "&secret=" + form.Secret + "&origin=" + form.Origin,
+			}
+
+			body, err := util.ParseTemplate("email-templates/action.html", templateData)
+			if err != nil {
+				log.Println(err.Error())
+				return nil, err
+			}
+
+			_, err = cli.Ses.SendEmail(util.SendEmialInput(conf.EmailFromAddres, e.Receiver, "Activate your new form at "+form.Origin, body))
+			if err != nil {
+				log.Println(err.Error())
+				return nil, err
+			}
+			return "verification email sent", nil
+
+		}
+		return nil, err
+	}
+
+	if !form.Verified {
+		return nil, errors.New("form is not verified")
+	}
+
+	// add to submission table
+	sumbmission := types.Submission{
+		FormID:     form.ID,               // primary key (part 2)
+		FormOrigin: form.Origin,           // primary key (part 1)
+		Timestamp:  time.Now().UnixNano(), // range key
+		Data:       e.Data,
+	}
+
+	err = database.AddFormSubmission(cli.Dynamo, conf.SubmissionTable, sumbmission)
+	if err != nil {
+		return nil, err
+	}
+
+	// send submission to associated email
+	data, err := url.ParseQuery(e.Data)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
+	body := util.CreateEmailBody(data)
 
-	if len(resp.Item) == 0 {
-		// is a new email
-
-		// add to db
-		secret := util.RandString(10)
-		_, err := cli.Dynamo.PutItem(util.NewFormDataPut(conf.FormFreeTable, e.Receiver, secret))
-
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-
-		// send confirm email
-		templateData := util.EmailData{
-			Text1:  "",
-			Text2:  "To activate your form, please confirm your email address by clicking the link below.",
-			Button: "Confirm email address",
-			Url:    conf.BaseURL + "/verify?receiver=" + e.Receiver + "&secret=" + secret,
-		}
-
-		body, err := util.ParseTemplate("email-templates/action.html", templateData)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-
-		resp, err := cli.Ses.SendEmail(util.SendEmialInput(conf.EmailFromAddres, "sogasg@gmail.com", "Test 22", body))
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-
-		println(resp)
-
-		return "verification email sent", nil
-	} else if *resp.Item["verifyed"].BOOL {
-
-		// add to submission table
-		_, err = cli.Dynamo.PutItem(util.FormSubmissionPut(conf.SubmissionTable, e.Receiver, time.Now().UnixNano(), e.Data))
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-
-		// send submission to asosiated email
-
-		data, err := url.ParseQuery(e.Data)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-		body := util.CreateEmailBody(data)
-
-		_, err = cli.Ses.SendEmail(util.SendEmialInput(conf.EmailFromAddres, "sogasg@gmail.com", "New Form Subbmision", body))
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-
-		return "submission handled", nil
-	} else {
-		log.Println(e.Receiver, " not verifyed")
-		return "", errors.New("receiver not verifyed")
+	_, err = cli.Ses.SendEmail(util.SendEmialInput(conf.EmailFromAddres, "sogasg@gmail.com", "New form submitted", body))
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
 	}
-
+	return "submission handled", nil
 }

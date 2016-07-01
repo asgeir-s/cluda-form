@@ -8,12 +8,13 @@ import (
 type Event struct {
 	Receiver string `json:"receiver"` // email or formId
 	Secret   string `json:"secret"`
+	Origin   string `json:"origin"`
 }
 
 // Config is the functions config
 type Config struct {
-	AwsRegion       string `env:"AWS_REGION" envDefault:"us-west-2"`
-	FormFreeTable   string `env:"FORM_FREE_TABLE" envDefault:"test-form-table"`
+	AwsRegion string `env:"AWS_REGION" envDefault:"us-west-2"`
+	FormTable string `env:"FORM_TABLE" envDefault:"test-form-table"`
 }
 
 // Clients is the dunctions exsternal resources

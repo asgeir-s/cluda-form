@@ -6,43 +6,42 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/cluda/cluda-form/functions/post-form/util"
+	"github.com/cluda/cluda-form/functions/post-form/database"
 )
 
 // Handle will handel a new event
 func Handle(e Event, conf Config, cli Clients) (interface{}, error) {
 
-	resp, err := cli.Dynamo.GetItem(util.FormDataRequest(conf.FormFreeTable, e.Receiver))
-
+	// get form
+	form, err := database.GetForm(cli.Dynamo, conf.FormTable, e.Origin, e.Receiver)
 	if err != nil {
-		log.Println(err.Error())
 		return nil, err
 	}
-
-	if len(resp.Item) == 0 {
-		log.Println("no form found with key:", e.Receiver)
-		return "", errors.New("no form found")
-	} else if *resp.Item["verifyed"].BOOL {
-		log.Println("form with key:", e.Receiver, "already verified")
+	if form.Verified {
+		log.Println("form with origin:", e.Origin, "and receiver:", e.Receiver, "already verified")
 		return "already verified", nil
-	} else if *resp.Item["secret"].S == e.Secret {
-		cli.Dynamo.UpdateItem(verifyFormDynamoIn(conf.FormFreeTable, e.Receiver))
-		return "receiver verifyed", nil
+	} else if form.Secret == e.Secret && form.Origin == e.Origin && (e.Receiver == form.Email || e.Receiver == form.ID) {
+		// valide verification
+		return "receiver verified", verifyForm(cli.Dynamo, conf.FormTable, e.Origin, form.ID)
 	}
-	log.Println("error or wrong secret for ", e.Receiver ,". Correct secret:", *resp.Item["secret"].S,  ", this secret:", e.Secret)
-	return "", errors.New("unknown error")
+	// if we get here their is some error with the verifcation (or hacking :P)
+	return "", errors.New("error or wrong secret or origin for " + e.Receiver + ". Correct secret: " + form.Secret +
+		", this secret: " + e.Secret + ". Correct origin: " + form.Origin + ", this origin: " + e.Origin)
 }
 
-func verifyFormDynamoIn(table string, receiver string) *dynamodb.UpdateItemInput {
-	return &dynamodb.UpdateItemInput{
-		Key: map[string]*dynamodb.AttributeValue{ // Required
-			"id": { // Required
-				S: aws.String(receiver),
+func verifyForm(dynamo *dynamodb.DynamoDB, table string, origin, id string) error {
+	param := &dynamodb.UpdateItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"origin": {
+				S: aws.String(origin),
+			},
+			"id": {
+				S: aws.String(id),
 			},
 		},
-		TableName: aws.String(table), // Required
+		TableName: aws.String(table),
 		AttributeUpdates: map[string]*dynamodb.AttributeValueUpdate{
-			"verifyed": { // Required
+			"verified": { // Required
 				Action: aws.String("PUT"),
 				Value: &dynamodb.AttributeValue{
 					BOOL: aws.Bool(true),
@@ -50,4 +49,6 @@ func verifyFormDynamoIn(table string, receiver string) *dynamodb.UpdateItemInput
 			},
 		},
 	}
+	_, err := dynamo.UpdateItem(param)
+	return err
 }
